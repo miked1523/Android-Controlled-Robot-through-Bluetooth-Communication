@@ -1,0 +1,472 @@
+/* a closed loop proportional control
+*  see Martin 
+*/
+#define  EncoderCountsPerRev (12.0)
+#define  AdvancePerRev       (5.96458)  //Calibrated wheel circumferance in inches
+#define  EstimatedRevTime  (2000.0)  // (over)estimated time to do a revolution of the wheel in milliseconds
+#define  EncoderMotorLeft  (0)
+#define  EncoderMotorRight  (1)
+#define  GAIN (2)
+#define  motorLeft (3)
+#define  motorRight (0)
+#define  MotorStallPower (8)
+#define  CCWDistancePer90Turn (8.4)      // counter clockwise Turning distance
+#define  CWDistancePer90Turn (8.4)      // clockwise turning distance
+#define  TurningPowerLock  (-5)       //motor power of the opposite wheel in order to lock it
+#define  ClockWise (1)               //int initializeEncoders(int a,int b);
+//int drive(float a);
+
+// bumpers
+#define LEFTTOUCH  (digital(15))
+#define RIGHTTOUCH (digital(14))
+
+// Arduino to Handy Board Action Command Pins
+#define BIT0 (digital(10))
+#define BIT1 (digital(11))
+#define BIT2 (digital(12))
+
+#define DRIVE (6)
+#define LEFT (5)
+#define RIGHT (4)
+#define STOP (3)
+#define SPEAK (2)
+
+#define STOP_TURN (15.0)
+#define TURN (30.0)
+#define DRIVE_SPEED (50)
+
+int drive_state = 0;
+int motor_left_speed = 0;
+int motor_right_speed = 0;
+
+void main()
+{
+    //int counter = 5;
+    float distance; // how far we want to go
+    while(!start_button());
+    
+    /*motor(0,50);
+
+    while(!stop_button())
+      {
+        //counter--;
+        motor(3,-counter);
+        sleep(2.0);
+        printf("/n%d",counter);
+    }
+    */
+    
+    initializeEncoders(EncoderMotorLeft,EncoderMotorRight);   
+    
+    // Drive = 110 = 6
+    // Left = 101 = 5
+    // Right = 100 = 4
+    // Stop = 011 = 3
+    // Speak = 010 = 2
+    
+    while(!stop_button()) {
+        int code = BIT0 || (BIT1>>1) || (BIT2>>2);
+        printf("%d\n",code);
+        if( BIT0 == 1 && BIT1 == 1 && BIT2 == 0 ) {
+            printf("DRIVE\n");
+            drive_state = 1;
+            motor_right_speed = DRIVE_SPEED;
+            motor_left_speed = DRIVE_SPEED;
+            motor(motorLeft, motor_left_speed);
+            motor(motorRight, motor_right_speed);
+            sleep(0.5);
+        }
+        else if( BIT0 == 1 && BIT1 == 0 && BIT2 == 1 ) {
+            printf("LEFT\n");
+            if( drive_state == 0 ) {
+                turn(!ClockWise, STOP_TURN);
+            }
+            else if( drive_state == 1 ) {
+                turn(!ClockWise, TURN);
+                motor(motorLeft, motor_left_speed);
+                motor(motorRight, motor_right_speed);
+            }
+            else if( drive_state == 2 ) {
+                reverseTurn(!ClockWise, TURN);
+                motor(motorLeft, motor_left_speed);
+                motor(motorRight, motor_right_speed);                
+            }
+        }
+        else if( BIT0 == 1 && BIT1 == 0 && BIT2 == 0 ) {
+            printf("RIGHT\n");
+            if( drive_state == 0 ) {
+                turn(ClockWise, STOP_TURN);
+            }
+            else if( drive_state == 1 ) {
+                turn(ClockWise, TURN);
+                motor(motorLeft, motor_left_speed);
+                motor(motorRight, motor_right_speed);
+            }
+            else if( drive_state == 2 ) {
+                reverseTurn(ClockWise, TURN);
+                motor(motorLeft, motor_left_speed);
+                motor(motorRight, motor_right_speed);                
+            }
+        }
+        else if( BIT0 == 0 && BIT1 == 1 && BIT2 == 1 ) {
+            printf("STOP\n");
+            stallWithState();
+            drive_state = 0;
+        }
+        else if( BIT0 == 0 && BIT1 == 1 && BIT2 == 0 ) {
+            printf("SPEAK\n");
+            stallWithState();
+            tone(264.0, 0.2);
+            tone(444.0, 0.6); 
+            tone(264.0, 0.2);
+            tone(444.0, 0.4);
+            tone(444.0, 0.2);            
+        }
+        else if( BIT0 == 0 && BIT1 == 0 && BIT2 == 1 ) {
+            printf("REVERSE\n");
+            drive_state = 2;
+            motor_right_speed = -DRIVE_SPEED;
+            motor_left_speed = -DRIVE_SPEED;
+            motor(motorLeft, motor_left_speed);
+            motor(motorRight, motor_right_speed);
+            sleep(0.5);
+        }
+        /*int command = BIT0 | (BIT1 << 1) | (BIT2 << 2)*/
+    }
+    
+    // drive(1.2);
+    // turn(!ClockWise, 90.0);
+    //2 while(!start_button());
+    
+    disableEncoders(EncoderMotorLeft,EncoderMotorRight);            
+    
+    ao();
+}
+
+
+// Stall the car wether it is driving or reversing
+void stallWithState() {
+    if( drive_state == 1 ) {
+        stallMotorWhileDriving();
+    }
+    else if( drive_state == 2 ) {
+        stallMotorWhileReversing();
+    } 
+}
+
+///////////
+int initializeEncoders(int ch1,int ch2)
+{
+    enable_encoder(ch1);
+    enable_encoder(ch2);
+    return(0);
+}
+
+int disableEncoders(int ch1,int ch2)
+{
+    disable_encoder(ch1);
+    disable_encoder(ch2);
+    return(0);
+}
+
+// stalls the motor by running it at a speed that will stop it
+void stallMotorWhileDriving()
+{
+    motor(motorLeft, -MotorStallPower);
+    motor(motorRight, -MotorStallPower);
+    sleep(.2);
+    ao();
+}
+
+// stalls the motor by running it at a speed that will stop it
+void stallMotorWhileReversing()
+{
+    motor(motorLeft, MotorStallPower);
+    motor(motorRight, MotorStallPower);
+    sleep(.2);
+    ao();    
+}
+
+/*
+ * Reverse()
+ * 
+ * Drives the robot backwards a certain exact distance
+ * Uses an encoder on each motor to make sure the robot travels the desired distance
+ * By counting the number of revolutions of the wheel
+ */
+int reverse(float distance)
+{
+    int countsDesired, countsCompleted;    //Variables to store the encoder counts and compute the error
+    long estimatedBackupTime, startTime;
+    int cmdLeft, cmdRight;
+    int countLeft = 0;
+    int countRight = 0;
+    int errorLeft, errorRight;
+    int power;
+    
+    // find (over)estimated back up time
+    estimatedBackupTime = (long)(EstimatedRevTime * (distance / AdvancePerRev));
+    
+    countsDesired = (int) ((distance / AdvancePerRev) * EncoderCountsPerRev);
+    reset_encoder(EncoderMotorLeft);
+    reset_encoder(EncoderMotorRight);
+    errorLeft = 1;
+    errorRight =  1;        
+    
+    startTime = mseconds();
+    
+    // loop until the correct distance has been traveled
+    while(errorLeft > 0 || errorRight > 0)
+      {
+        cmdLeft = computeCommand(GAIN, errorLeft);
+        cmdRight = computeCommand(GAIN, errorRight);
+        motor(motorLeft, -cmdLeft);
+        motor(motorRight, -cmdRight);
+        countLeft = read_encoder(EncoderMotorLeft);
+        countRight = read_encoder(EncoderMotorRight);
+        errorLeft = countsDesired - countLeft;
+        errorRight = countsDesired - countRight; 
+        
+        // check for infinite backup stuck
+        if( mseconds() - startTime > estimatedBackupTime ) {
+            errorLeft = -1;
+            errorRight = -1;            
+        }
+        
+        printf("eL= %d, eR= %d,  cL=%d, cR=%d\n",errorLeft, errorRight, cmdLeft, cmdRight);
+    }
+    ao();    //turn the motors off   
+}
+
+/*
+ * Turn()
+ * Turns the robot a certain degrees in a certain direction
+ *
+ */
+void turn(int clockwise, float degrees)
+{
+    
+    int countsDesired, countsCompleted;    //Variables to store the encoder counts and compute the error
+    int cmdLeft=100, cmdRight=100;
+    int countLeft = 0;
+    int countRight = 0;
+    int errorLeft, errorRight;
+    int power;
+    float DistancePer90Turn = (degrees/90.0) * CWDistancePer90Turn;
+    
+    // CCW distance is different than CW distance switch if appropriate
+    if( !clockwise ) {
+        DistancePer90Turn = (degrees/90.0) * CCWDistancePer90Turn;
+    }
+    
+    countsDesired = (int) ((DistancePer90Turn / AdvancePerRev) * EncoderCountsPerRev);
+    reset_encoder(EncoderMotorLeft);
+    reset_encoder(EncoderMotorRight);
+    errorLeft = 1;
+    errorRight =  1;            
+    
+    while((errorRight > 0) && !clockwise)
+      {        
+        motor(motorRight, cmdRight);
+        motor(motorLeft, TurningPowerLock);
+        
+        countRight = read_encoder(EncoderMotorRight);
+        errorRight = countsDesired - countRight;  
+        
+        // check for bumper hits
+        if( LEFTTOUCH == 1 ) {
+            // stall motor
+            ao();
+            
+            // save encoder state and call reverse function
+            countsDesired = errorRight;
+            reverse(AdvancePerRev/4.0);        
+            reset_encoder(EncoderMotorLeft);
+            reset_encoder(EncoderMotorRight);
+            // printf("Left\n");    
+        }
+        else if( RIGHTTOUCH == 1 ) {
+            // stall motor 
+            ao();
+            
+            // save encoder state and call reverse function
+            countsDesired = errorRight;
+            reverse(AdvancePerRev/4.0);        
+            
+            reset_encoder(EncoderMotorLeft);
+            reset_encoder(EncoderMotorRight);
+            // printf("Right\n");
+        }
+        
+        printf("eL= %d, eR= %d,  cL=%d, cR=%d\n",errorLeft, errorRight, cmdLeft, cmdRight);
+    }
+    
+    while(errorLeft > 0 && clockwise)
+      {
+        //cmdLeft = computeCommand(GAIN, errorLeft);
+        
+        motor(motorLeft, cmdLeft);
+        motor(motorRight, TurningPowerLock);
+        countLeft = read_encoder(EncoderMotorLeft);
+        errorLeft = countsDesired - countLeft;
+        
+        // check for bumper hits
+        if( LEFTTOUCH == 1 ) {
+            // stall motor
+            ao();
+            
+            // save encoder state and call reverse and turn functions
+            countsDesired = errorLeft;
+            reverse(AdvancePerRev/4.0);        
+            reset_encoder(EncoderMotorLeft);
+            reset_encoder(EncoderMotorRight);
+            printf("Left\n");    
+        }
+        else if( RIGHTTOUCH == 1 ) {
+            // stall motor 
+            ao();
+            
+            // save encoder state and call reverse and turn functions
+            countsDesired = errorLeft;
+            reverse(AdvancePerRev/4.0);        
+            
+            reset_encoder(EncoderMotorLeft);
+            reset_encoder(EncoderMotorRight);
+            printf("Right\n");
+        }
+        
+        printf("eL= %d, eR= %d,  cL=%d, cR=%d\n",errorLeft, errorRight, cmdLeft, cmdRight);
+        
+    }
+    ao();
+}
+
+
+/*
+ * Turn()
+ * Turns the robot a certain degrees in a certain direction if it is going in reverse
+ *
+ */
+void reverseTurn(int clockwise, float degrees)
+{
+    
+    int countsDesired, countsCompleted;    //Variables to store the encoder counts and compute the error
+    int cmdLeft=100, cmdRight=100;
+    int countLeft = 0;
+    int countRight = 0;
+    int errorLeft, errorRight;
+    int power;
+    float DistancePer90Turn = (degrees/90.0) * CWDistancePer90Turn;
+    
+    // CCW distance is different than CW distance switch if appropriate
+    if( !clockwise ) {
+        DistancePer90Turn = (degrees/90.0) * CCWDistancePer90Turn;
+    }
+    
+    countsDesired = (int) ((DistancePer90Turn / AdvancePerRev) * EncoderCountsPerRev);
+    reset_encoder(EncoderMotorLeft);
+    reset_encoder(EncoderMotorRight);
+    errorLeft = 1;
+    errorRight =  1;            
+    
+    while((errorRight > 0) && !clockwise)
+      {        
+        motor(motorRight, -cmdRight);
+        motor(motorLeft, -TurningPowerLock);
+        
+        countRight = read_encoder(EncoderMotorRight);
+        errorRight = countsDesired - countRight;  
+        
+        // check for bumper hits
+        if( LEFTTOUCH == 1 ) {
+            // stall motor
+            ao();
+            
+            // save encoder state and call reverse function
+            countsDesired = errorRight;
+            reverse(AdvancePerRev/4.0);        
+            reset_encoder(EncoderMotorLeft);
+            reset_encoder(EncoderMotorRight);
+            // printf("Left\n");    
+        }
+        else if( RIGHTTOUCH == 1 ) {
+            // stall motor 
+            ao();
+            
+            // save encoder state and call reverse function
+            countsDesired = errorRight;
+            reverse(AdvancePerRev/4.0);        
+            
+            reset_encoder(EncoderMotorLeft);
+            reset_encoder(EncoderMotorRight);
+            // printf("Right\n");
+        }
+        
+        printf("eL= %d, eR= %d,  cL=%d, cR=%d\n",errorLeft, errorRight, cmdLeft, cmdRight);
+    }
+    
+    while(errorLeft > 0 && clockwise)
+      {
+        //cmdLeft = computeCommand(GAIN, errorLeft);
+        
+        motor(motorLeft, -cmdLeft);
+        motor(motorRight, -TurningPowerLock);
+        countLeft = read_encoder(EncoderMotorLeft);
+        errorLeft = countsDesired - countLeft;
+        
+        // check for bumper hits
+        if( LEFTTOUCH == 1 ) {
+            // stall motor
+            ao();
+            
+            // save encoder state and call reverse and turn functions
+            countsDesired = errorLeft;
+            reverse(AdvancePerRev/4.0);        
+            reset_encoder(EncoderMotorLeft);
+            reset_encoder(EncoderMotorRight);
+            printf("Left\n");    
+        }
+        else if( RIGHTTOUCH == 1 ) {
+            // stall motor 
+            ao();
+            
+            // save encoder state and call reverse and turn functions
+            countsDesired = errorLeft;
+            reverse(AdvancePerRev/4.0);        
+            
+            reset_encoder(EncoderMotorLeft);
+            reset_encoder(EncoderMotorRight);
+            printf("Right\n");
+        }
+        
+        printf("eL= %d, eR= %d,  cL=%d, cR=%d\n",errorLeft, errorRight, cmdLeft, cmdRight);
+        
+    }
+    ao();
+}
+
+
+// make sure the motor power levels are in the range:
+// 15 to 20 and -15 to -20
+int computeCommand(int g, int e)
+{
+    int cmd = 0;
+    
+    cmd = (g * e);
+    
+    // power levels less than 15 will stall the motor
+    if( cmd > 0 && cmd < 15 ) {
+        cmd = 15;
+    }
+    if( cmd > -15 && cmd < 0 ) {
+        cmd = -15;
+    }
+    
+    // power levels greater than 20 will damage the bumper sensors
+    if (cmd  > 100) 
+      cmd = 100;
+    else 
+      if (cmd < -100)
+      cmd = -100;
+    return(cmd);
+}

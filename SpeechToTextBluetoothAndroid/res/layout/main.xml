@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+<TextView
+android:id="@+id/txt_output"  
+    android:layout_width="fill_parent" 
+    android:layout_height="wrap_content" 
+    android:text="Begin"
+    />
+    		
+	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    	android:orientation="horizontal"
+    	android:layout_width="fill_parent"
+    	android:layout_height="wrap_content">
+				
+				<Button
+				android:id="@+id/speech_btn"
+				android:layout_height="wrap_content"
+				android:layout_width="wrap_content"
+				android:layout_gravity="center"
+				android:layout_margin="5dp"
+	            android:background="@drawable/blue_button"
+	            style="@style/ButtonText"
+				android:text="Speech"
+				android:onClick="speechConvertButton" />
+				
+				<EditText
+				android:id="@+id/device_id"
+				android:layout_height="wrap_content"
+				android:layout_width="wrap_content"
+				android:layout_gravity="center"
+				android:padding="5dp"
+				android:text="Device ID" />
+				
+				<Button
+				android:id="@+id/device_btn"
+				android:layout_height="wrap_content"
+				android:layout_width="wrap_content"
+				android:layout_gravity="center"
+				android:layout_margin="5dp"
+	            android:background="@drawable/blue_button"
+	            style="@style/ButtonText"
+				android:text="Connect"
+				android:onClick="connectButton" />
+				
+					<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    	android:orientation="horizontal"
+    	android:layout_width="fill_parent"
+    	android:layout_height="wrap_content"
+    					android:paddingLeft="40dp">
+							
+				<Button
+				android:id="@+id/stop_btn"
+				android:layout_height="50dp"
+				android:layout_width="200dp"
+				android:layout_gravity="center"
+				android:background="@drawable/stop"
+				android:onClick="stopButton" />
+			</LinearLayout>	
+				
+	</LinearLayout>				
+				
+	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+   		android:orientation="horizontal"
+    	android:layout_width="wrap_content"
+    	android:layout_height="wrap_content"
+    	android:weightSum="5"
+    	android:layout_gravity="center">
+				
+		<Button
+			android:id="@+id/left_btn"
+			android:layout_height="wrap_content"
+			android:layout_width="0dp"
+			android:layout_weight = "1"
+			android:layout_gravity="center"
+			android:background="@drawable/left_arrow"
+			android:onClick="leftButton" />
+				
+		<Button
+			android:id="@+id/right_btn"
+			android:layout_height="wrap_content"
+			android:layout_width="0dp"
+			android:layout_weight = "1"
+			android:layout_gravity="center"
+			android:background="@drawable/right_arrow"
+			android:onClick="rightButton" />
+
+		<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+   			android:orientation="vertical"
+    		android:layout_width="0dp"
+    		android:layout_height="wrap_content"
+    		android:layout_weight = "2"
+    		android:weightSum="2"
+    		android:layout_gravity="center">	
+    		
+    		<Button
+				android:id="@+id/drive_btn"
+				android:layout_height="0dp"
+				android:layout_width="wrap_content"
+				android:layout_gravity="center"
+				android:background="@drawable/up_arrow"
+				android:layout_weight = "1"
+				android:onClick="driveButton" />			
+				
+			<Button
+				android:id="@+id/stop_btn"
+				android:layout_height="0dp"
+				android:layout_width="wrap_content"
+				android:layout_gravity="center"
+				android:background="@drawable/down_arrow"
+				android:layout_weight = "1"
+				android:onClick="reverseButton" />
+    		
+    	</LinearLayout>	
+				
+	</LinearLayout>								
+    
+</LinearLayout>
